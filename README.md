@@ -1,13 +1,13 @@
 # 🤖 Culi-Bot
 
-A Telegram bot powered by **Grok AI** for intelligent Kubernetes alert analysis with playbook integration.
+A Telegram bot powered by **Groq AI** for intelligent Kubernetes alert analysis with playbook integration.
 
 ## 📋 Overview
 
-**Culi-Bot** is a sophisticated Telegram chatbot designed to analyze Kubernetes alerts and provide AI-powered insights using Grok (x.ai). It integrates custom playbooks for domain-specific knowledge and maintains a SQLite database for alert deduplication and history tracking.
+**Culi-Bot** is a sophisticated Telegram chatbot designed to analyze Kubernetes alerts and provide AI-powered insights using Groq (groq.com). It integrates custom playbooks for domain-specific knowledge to deliver context-aware responses.
 
 **Key Features:**
-- 🧠 **AI-Powered Analysis**: Uses Grok AI (grok-3) to analyze and contextualize Kubernetes alerts
+- 🧠 **AI-Powered Analysis**: Uses Groq AI (fast LLM inference) to analyze and contextualize Kubernetes alerts
 - 📖 **Playbook Support**: Match alerts to internal playbooks for tailored responses
 - 🔄 **Alert Deduplication**: Prevents spam by tracking recent alerts with configurable cooldown
 - 📊 **Database Persistence**: SQLite-based alert history and analytics
@@ -21,7 +21,7 @@ A Telegram bot powered by **Grok AI** for intelligent Kubernetes alert analysis 
 ### Prerequisites
 - Python 3.12+
 - Telegram Bot Token (from [@BotFather](https://t.me/botfather))
-- Grok API Key (from [x.ai](https://x.ai))
+- Groq API Key (from [groq.com](https://groq.com))
 - Docker & Docker Compose (optional)
 
 ### Installation
@@ -47,9 +47,9 @@ A Telegram bot powered by **Grok AI** for intelligent Kubernetes alert analysis 
    Edit `.env` and set:
    ```env
    TELEGRAM_BOT_TOKEN=your_telegram_token_here
-   GROK_API_KEY=your_grok_api_key_here
+   GROQ_API_KEY=your_groq_api_key_here
    BOT_USERNAME=your_bot_username  # e.g., culi_bot (without @)
-   GROK_MODEL=grok-3               # Default: grok-3
+   GROQ_MODEL=llama-3.3-70b-versatile  # Default: llama-3.3-70b-versatile
    DATABASE_PATH=data/culi_bot.db  # Default: data/culi_bot.db
    PLAYBOOKS_DIR=playbooks         # Default: playbooks
    ```
@@ -75,9 +75,9 @@ The docker-compose setup includes:
 ## 📦 Dependencies
 
 | Package | Version | Purpose |
-|---------|---------|---------|
+|---------|---------|----------|
 | `python-telegram-bot` | 21.6 | Telegram Bot API wrapper |
-| `httpx` | 0.27.0 | Async HTTP client for Grok API |
+| `groq` | 0.13.1 | Groq AI API client |
 | `python-dotenv` | 1.0.1 | Environment variable management |
 
 ---
@@ -91,10 +91,10 @@ culi-bot/
 │   ├── handlers.py          # Message and alert handler logic
 │   ├── admin.py             # Admin commands (/status, /stats, etc.)
 │   ├── database.py          # SQLite database operations
-│   ├── grok_client.py       # Grok AI API integration
+│   ├── groq_client.py       # Groq AI API integration
 │   ├── parser.py            # Alert message parsing
 │   └── playbook_loader.py   # Playbook file loading & matching
-├── playbooks/               # Custom Kubernetes playbooks (YAML/Markdown)
+├── playbooks/               # Custom Kubernetes playbooks (Markdown)
 ├── data/                    # Persistent data (SQLite DB, created at runtime)
 ├── requirements.txt         # Python dependencies
 ├── Dockerfile               # Docker image definition
@@ -119,7 +119,7 @@ The bot will:
 1. Parse the alert message
 2. Check for recent similar alerts (deduplication)
 3. Find a matching playbook
-4. Send to Grok AI for analysis
+4. Send to Groq AI for analysis
 5. Reply with formatted insights
 
 ### Admin Commands
@@ -139,7 +139,7 @@ Playbooks are Markdown files organized by category that provide context-specific
 
 ### Playbook Structure
 
-**File**: `playbooks/kubernetes/pod_crashes.md`
+**File**: `playbooks/K8S_PATTERNS_PODS.md`
 ```markdown
 # Pod Crash Handling
 
@@ -158,8 +158,8 @@ Playbooks are Markdown files organized by category that provide context-specific
 
 The bot matches alerts to playbooks using alert names:
 - Alert: `PodCrashLooping` → searches `playbooks/` for matching files
-- If found, playbook content is sent to Grok alongside the alert
-- If not found, Grok uses Kubernetes general knowledge
+- If found, playbook content is sent to Groq alongside the alert
+- If not found, Groq uses Kubernetes general knowledge
 
 ### Hot-Reload
 
@@ -183,7 +183,7 @@ Deduplication Check (prevent spam within 30 min cooldown)
     ↓
 Playbook Lookup (find matching playbook)
     ↓
-Grok API Call (with system prompt + playbook context)
+Groq API Call (with system prompt + playbook context)
     ↓
 Database Save (for history & stats)
     ↓
@@ -192,7 +192,7 @@ Formatted Response to Telegram
 
 ### System Prompt
 
-The bot uses `playbooks/AI_PROMPT_SPEC.md` as the system prompt for Grok. Customize this file to shape AI behavior:
+The bot uses `playbooks/AI_PROMPT_SPEC.md` as the system prompt for Groq. Customize this file to shape AI behavior:
 
 ```markdown
 # AI System Prompt
@@ -210,9 +210,9 @@ You are a Kubernetes expert assistant analyzing production alerts.
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `TELEGRAM_BOT_TOKEN` | ✅ | - | Telegram Bot API token |
-| `GROK_API_KEY` | ✅ | - | x.ai Grok API key |
+| `GROQ_API_KEY` | ✅ | - | Groq API key from groq.com |
 | `BOT_USERNAME` | ✅ | - | Bot username (for @mention detection) |
-| `GROK_MODEL` | ❌ | `grok-3` | Grok model version |
+| `GROQ_MODEL` | ❌ | `llama-3.3-70b-versatile` | Groq model version |
 | `DATABASE_PATH` | ❌ | `data/culi_bot.db` | SQLite database path |
 | `PLAYBOOKS_DIR` | ❌ | `playbooks` | Playbooks directory |
 
@@ -223,24 +223,24 @@ You are a Kubernetes expert assistant analyzing production alerts.
 The bot maintains a SQLite database with alert history:
 
 | Table | Purpose |
-|-------|---------|
-| `alerts` | Stores alert analysis history |
-| `dedup_cache` | Tracks recent alerts for deduplication |
+|-------|----------|
+| `alert_history` | Stores alert analysis history |
+| `dedup_counter` | Tracks recent alerts for deduplication |
 
 ### Sample Queries
 
 **Get recent alerts:**
 ```sql
-SELECT alertname, namespace, severity, analyzed_at 
-FROM alerts 
-ORDER BY analyzed_at DESC 
+SELECT alertname, namespace, severity, created_at 
+FROM alert_history 
+ORDER BY created_at DESC 
 LIMIT 10;
 ```
 
 **Get alert count by severity:**
 ```sql
 SELECT severity, COUNT(*) as count 
-FROM alerts 
+FROM alert_history 
 GROUP BY severity;
 ```
 
@@ -254,9 +254,9 @@ GROUP BY severity;
 - **Check 2**: Confirm message contains valid alert format
 - **Check 3**: Review logs: `docker-compose logs -f culi-bot`
 
-### Grok API errors
+### Groq API errors
 
-- **Check**: Verify `GROK_API_KEY` is correct
+- **Check**: Verify `GROQ_API_KEY` is correct
 - **Solution**: Use `docker-compose restart culi-bot` after fixing
 
 ### Alert deduplication too aggressive
@@ -273,7 +273,8 @@ GROUP BY severity;
 ## 📚 Tech Stack
 
 - **Framework**: `python-telegram-bot` (Telegram Bot API)
-- **AI**: Grok (x.ai) via `httpx` async client
+- **AI**: Groq API (groq.com) - Fast LLM inference
+- **Models**: Llama 3.3 70B (default)
 - **Database**: SQLite
 - **Container**: Docker + Docker Compose
 - **Python**: 3.12 (slim image)
@@ -328,7 +329,7 @@ For issues, questions, or feature requests, please open a GitHub issue.
 ## 🌟 Acknowledgments
 
 - Built with [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)
-- Powered by [Grok AI](https://x.ai) (xAI)
+- Powered by [Groq API](https://groq.com) - Fast LLM Inference
 - Designed for Kubernetes on-call teams
 
 ---
