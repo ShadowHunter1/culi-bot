@@ -3,7 +3,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from .parser import parse_alert_message
 from .playbook_loader import PlaybookLoader
-from .grok_client import GrokClient
+from .groq_client import GroqClient
 from .database import Database
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ class AlertHandler:
     def __init__(
         self,
         playbook_loader: PlaybookLoader,
-        grok_client: GrokClient,
+        grok_client: GroqClient,
         database: Database,
         bot_username: str,
         dedup_enabled: bool = True,

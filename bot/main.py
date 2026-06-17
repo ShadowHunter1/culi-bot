@@ -5,7 +5,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, fil
 from .handlers import AlertHandler
 from .admin import AdminCommands
 from .playbook_loader import PlaybookLoader
-from .grok_client import GrokClient
+from .groq_client import GroqClient
 from .database import Database
 
 logging.basicConfig(
@@ -15,8 +15,8 @@ logging.basicConfig(
 
 def main():
     token         = os.environ["TELEGRAM_BOT_TOKEN"]
-    grok_api_key  = os.environ["GROK_API_KEY"]
-    grok_model    = os.environ.get("GROK_MODEL", "grok-3")
+    grok_api_key  = os.environ["GROQ_API_KEY"]
+    grok_model    = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
     db_path       = os.environ.get("DATABASE_PATH", "data/culi_bot.db")
     playbooks_dir = os.environ.get("PLAYBOOKS_DIR", "playbooks")
     bot_username  = os.environ["BOT_USERNAME"]  # Ví dụ: culi_bot
@@ -25,7 +25,7 @@ def main():
     db       = Database(db_path)
     playbooks = PlaybookLoader(playbooks_dir)
     playbooks.load_all()
-    grok     = GrokClient(grok_api_key, grok_model)
+    grok     = GroqClient(grok_api_key, grok_model)
     start_time = time.time()
 
     handler = AlertHandler(
