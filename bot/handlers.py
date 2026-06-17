@@ -12,14 +12,14 @@ class AlertHandler:
     def __init__(
         self,
         playbook_loader: PlaybookLoader,
-        grok_client: GroqClient,
+        groq_client: GroqClient,
         database: Database,
         bot_username: str,
         dedup_enabled: bool = True,
         dedup_cooldown: int = 1800,
     ):
         self.playbooks = playbook_loader
-        self.grok = grok_client
+        self.groq = groq_client
         self.db = database
         self.bot_username = bot_username.lstrip("@")
         self.dedup_enabled = dedup_enabled
@@ -64,17 +64,17 @@ class AlertHandler:
             action="typing",
         )
 
-        # Gọi Grok
+        # Gọi Groq API
         try:
-            ai_response = await self.grok.analyze_alert(
+            ai_response = await self.groq.analyze_alert(
                 alert_text=text,
                 playbook_content=playbook_content,
                 category_name=category,
             )
         except Exception as e:
-            logger.error(f"Grok API error: {e}")
+            logger.error(f"Groq API error: {e}")
             await message.reply_text(
-                "❌ Lỗi khi gọi Grok API. Vui lòng kiểm tra logs.",
+                "❌ Lỗi khi gọi Groq API. Vui lòng kiểm tra logs.",
                 reply_to_message_id=message.message_id,
             )
             return

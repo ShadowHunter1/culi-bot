@@ -15,8 +15,8 @@ logging.basicConfig(
 
 def main():
     token         = os.environ["TELEGRAM_BOT_TOKEN"]
-    grok_api_key  = os.environ["GROQ_API_KEY"]
-    grok_model    = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+    groq_api_key  = os.environ["GROQ_API_KEY"]
+    groq_model    = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
     db_path       = os.environ.get("DATABASE_PATH", "data/culi_bot.db")
     playbooks_dir = os.environ.get("PLAYBOOKS_DIR", "playbooks")
     bot_username  = os.environ["BOT_USERNAME"]  # Ví dụ: culi_bot
@@ -25,12 +25,12 @@ def main():
     db       = Database(db_path)
     playbooks = PlaybookLoader(playbooks_dir)
     playbooks.load_all()
-    grok     = GroqClient(grok_api_key, grok_model)
+    groq     = GroqClient(groq_api_key, groq_model)
     start_time = time.time()
 
     handler = AlertHandler(
         playbook_loader=playbooks,
-        grok_client=grok,
+        groq_client=groq,
         database=db,
         bot_username=bot_username,
     )
