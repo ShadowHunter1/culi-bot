@@ -1,10 +1,10 @@
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
+from telegram.constants import ParseMode
 from .parser import parse_alert_message
 from .playbook_loader import PlaybookLoader
 from .groq_client import GroqClient
-from html import escape
 
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ class AlertHandler:
             )
             return
 
-        # Format response
+        # Format header (HTML)
         header = (
             f"🔍 <b>Phân tích: {alert.alertname}</b>\n"
             f"📦 Namespace: <code>{alert.namespace}</code> | "
@@ -75,13 +75,28 @@ class AlertHandler:
             header += f"📖 Playbook: <code>{category}</code>\n"
         header += "─" * 30 + "\n\n"
 
-        full_response = header + escape(ai_response)
-
-        if len(full_response) > 4096:
-            full_response = full_response[:4090] + "\n..."
-
+        # Gửi header trước (HTML format)
         await message.reply_text(
-            full_response,
+            header,
             parse_mode="HTML",
             reply_to_message_id=message.message_id,
         )
+
+        # Truncate response nếu quá dài
+        if len(ai_response) > 4096:
+            ai_response = ai_response[:4090] + "\n..."
+
+        # Gửi content (Markdown format - giữ nguyên markdown từ Groq)
+        try:
+            await message.reply_text(
+                ai_response,
+                parse_mode=ParseMode.MARKDOWN_V2,
+                reply_to_message_id=message.message_id,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send with MARKDOWN_V2, falling back to plain text: {e}")
+            # Nếu MarkdownV2 fail, gửi dạng plain text
+            await message.reply_text(
+                ai_response,
+                reply_to_message_id=message.message_id,
+            )
