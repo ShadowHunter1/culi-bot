@@ -1,0 +1,13 @@
+services:
+  culi-bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/app/data          # SQLite persistent
+      - ./playbooks:/app/playbooks  # Playbooks có thể update không cần rebuild
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
