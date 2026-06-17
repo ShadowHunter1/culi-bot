@@ -1,5 +1,7 @@
 import re
 from dataclasses import dataclass
+import logging
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ParsedAlert:
@@ -11,21 +13,37 @@ class ParsedAlert:
     labels: dict[str, str]
     raw_text: str
 
+# Các keyword xác định đây là alert message
+ALERT_KEYWORDS = [
+    "firing", "resolved", "kubepod", "kube", "alert",
+    "crashloop", "summary", "severity", "namespace",
+]
+
 def parse_alert_message(text: str) -> ParsedAlert | None:
-    """
-    Parse message từ Alertmanager template.
-    Trả về None nếu không phải alert message.
-    """
+    logger.info(f"RAW TEXT:\n{text}")
+    text_lower = text.lower()
+
     # Kiểm tra có phải alert không
-    if not re.search(r'alertname|severity|namespace', text, re.IGNORECASE):
+    if not any(kw in text_lower for kw in ALERT_KEYWORDS):
         return None
 
     def extract(pattern: str, default: str = "unknown") -> str:
         m = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
         return m.group(1).strip() if m else default
 
-    # Extract từng field theo template Alertmanager
-    alertname = extract(r'<b>([^<]+)</b>')  # Field đầu tiên bold là alertname
+    # Thử lấy alertname theo nhiều format khác nhau
+    alertname = (
+        # Format: "alertname: KubePodCrashLooping"
+        extract(r'alertname[:\s]+([A-Za-z][A-Za-z0-9_]+)')
+        or
+        # Format: "<b>KubePodCrashLooping</b>"
+        extract(r'<b>([A-Za-z][A-Za-z0-9_]+)</b>')
+        or
+        # Format: dòng riêng sau FIRING/RESOLVED, bắt đầu bằng chữ hoa
+        extract(r'(?:FIRING|RESOLVED)\s*\n+([A-Za-z][A-Za-z0-9_]+)')
+        or "unknown"
+    )
+
     severity  = extract(r'Severity[:\s]+([^\n<]+)')
     namespace = extract(r'Namespace[:\s]+([^\n<]+)')
     summary   = extract(r'Summary[:\s]+([^\n<]+)')

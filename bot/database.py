@@ -54,27 +54,20 @@ class Database:
         key = f"{alertname}|{namespace}"
         return hashlib.sha256(key.encode()).hexdigest()[:16]
 
-    def check_dedup(self, alert_hash: str, cooldown_seconds: int = 1800) -> bool:
-        """
-        Trả về True nếu alert này đã được xử lý trong cooldown_seconds gần nhất.
-        Mặc định cooldown = 30 phút.
-        """
+    def is_duplicate(self, alert_hash: str, cooldown_seconds: int = 1800) -> bool:
+        """Chỉ CHECK, không update counter."""
         now = int(time.time())
         with self._conn() as conn:
             row = conn.execute(
                 "SELECT last_seen FROM dedup_counter WHERE alert_hash = ?",
                 (alert_hash,)
             ).fetchone()
+            return bool(row and (now - row["last_seen"]) < cooldown_seconds)
 
-            if row and (now - row["last_seen"]) < cooldown_seconds:
-                # Update counter
-                conn.execute(
-                    "UPDATE dedup_counter SET count = count + 1, last_seen = ? WHERE alert_hash = ?",
-                    (now, alert_hash)
-                )
-                return True  # Đã xử lý gần đây → skip AI call
-
-            # Chưa có hoặc đã hết cooldown → upsert
+    def mark_processed(self, alert_hash: str):
+        """Chỉ update counter SAU KHI xử lý thành công."""
+        now = int(time.time())
+        with self._conn() as conn:
             conn.execute(
                 """INSERT INTO dedup_counter (alert_hash, count, first_seen, last_seen)
                    VALUES (?, 1, ?, ?)
@@ -82,7 +75,6 @@ class Database:
                    count = count + 1, last_seen = excluded.last_seen""",
                 (alert_hash, now, now)
             )
-            return False
 
     def save_alert(self, alert_hash, alertname, namespace, severity, raw_text, ai_response, message_id):
         now = int(time.time())
